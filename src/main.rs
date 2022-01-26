@@ -84,7 +84,7 @@ fn setup(
         .load_texture(&thread, "assets/images/goblin.png")
         .unwrap();
 
-    textures.insert("globlin", texture);
+    textures.insert("goblin", texture);
 
     let mut rng = rand::thread_rng();
 
@@ -101,7 +101,7 @@ fn setup(
                     dy: rng.gen_range(-2.0..2.0),
                 })
                 .insert(Renderable {
-                    texture_id: "globlin",
+                    texture_id: "goblin",
                 });
         }
     }
