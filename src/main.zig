@@ -23,24 +23,6 @@ pub fn main() !void {
         .addPlugin(gamePlugin);
 
     try app.run();
-
-    // var world = try World.init(allocator);
-    // defer world.deinit();
-
-    // rl.InitWindow(800, 600, "raylib [core] example - basic window");
-    // defer rl.CloseWindow();
-
-    // rl.SetTargetFPS(60);
-
-    // var texture = rl.LoadTexture("icon.png");
-    // try setup(&world, texture);
-
-    // while (!rl.WindowShouldClose()) {
-    //     try moveSystem(&world);
-    //     try renderSystem(&world);
-    // }
-
-    // rl.UnloadTexture(texture);
 }
 
 fn renderPlugin(app: *App) !void {
