@@ -1,5 +1,7 @@
 const std = @import("std");
 const zecs = @import("zecs");
+const App = @import("app.zig").App;
+const Stage = @import("app.zig").Stage;
 const World = zecs.World;
 const System = zecs.System;
 
@@ -7,27 +9,48 @@ const rl = @cImport({
     @cInclude("raylib.h");
 });
 
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-const allocator = gpa.allocator();
-
 pub fn main() !void {
-    var world = try World.init(allocator);
-    defer world.deinit();
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
 
-    rl.InitWindow(800, 600, "raylib [core] example - basic window");
-    defer rl.CloseWindow();
+    const allocator = gpa.allocator();
 
-    rl.SetTargetFPS(60);
+    var app = try App.init(allocator);
+    defer app.deinit();
 
-    var texture = rl.LoadTexture("icon.png");
-    try setup(&world, texture);
+    _ = app
+        .addPlugin(renderPlugin)
+        .addPlugin(gamePlugin);
 
-    while (!rl.WindowShouldClose()) {
-        try moveSystem(&world);
-        try renderSystem(&world);
-    }
+    try app.run();
 
-    rl.UnloadTexture(texture);
+    // var world = try World.init(allocator);
+    // defer world.deinit();
+
+    // rl.InitWindow(800, 600, "raylib [core] example - basic window");
+    // defer rl.CloseWindow();
+
+    // rl.SetTargetFPS(60);
+
+    // var texture = rl.LoadTexture("icon.png");
+    // try setup(&world, texture);
+
+    // while (!rl.WindowShouldClose()) {
+    //     try moveSystem(&world);
+    //     try renderSystem(&world);
+    // }
+
+    // rl.UnloadTexture(texture);
+}
+
+fn renderPlugin(app: *App) !void {
+    _ = app.addSystem(.render, renderSystem);
+}
+
+fn gamePlugin(app: *App) !void {
+    _ = app
+        .addSystem(.startup, spawnSystem)
+        .addSystem(.update, moveSystem);
 }
 
 const Position = struct {
@@ -44,8 +67,9 @@ const Sprite = struct {
     texture: rl.Texture2D,
 };
 
-fn setup(world: *World, texture: rl.Texture2D) !void {
+fn spawnSystem(world: *World) !void {
     var rnd = std.rand.DefaultPrng.init(0);
+    var texture = rl.LoadTexture("icon.png");
 
     var y: u32 = 0;
     while (y < 10) : (y += 1) {
