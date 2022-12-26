@@ -1,6 +1,7 @@
 const std = @import("std");
 const zecs = @import("zecs");
 const World = zecs.World;
+const System = zecs.System;
 
 const rl = @cImport({
     @cInclude("raylib.h");
@@ -13,22 +14,102 @@ pub fn main() !void {
     var world = try World.init(allocator);
     defer world.deinit();
 
-    rl.InitWindow(800, 600, "raylib [core] example - basic window");
-    defer rl.CloseWindow();
+    try benchSetup(&world);
+    try benchSystem(&world);
+    try bench(&world, benchSystem);
+    try bench(&world, fastBenchSystem);
+    // rl.InitWindow(800, 600, "raylib [core] example - basic window");
+    // defer rl.CloseWindow();
 
-    rl.SetTargetFPS(60);
+    // rl.SetTargetFPS(60);
 
-    var texture = rl.LoadTexture("icon.png");
-    try setup(&world, texture);
+    // var texture = rl.LoadTexture("icon.png");
+    // try setup(&world, texture);
 
-    while (!rl.WindowShouldClose()) {
-        try moveSystem(&world);
-        try renderSystem(&world);
-    }
+    // while (!rl.WindowShouldClose()) {
+    //     try moveSystem(&world);
+    //     try renderSystem(&world);
+    // }
 
-    rl.UnloadTexture(texture);
+    // rl.UnloadTexture(texture);
 }
 
+const test_runs: u32 = 10;
+const Timer = std.time.Timer;
+fn bench(world: *World, system: System) !void {
+    var counter: u32 = test_runs;
+    var timer = try Timer.start();
+    var time: u64 = 0;
+
+    while (counter > 0) {
+        try system(world);
+        time += timer.lap();
+        counter -= 1;
+    }
+
+    std.debug.print("ns: {}\n", .{time / test_runs});
+}
+
+const C1 = struct {
+    value: u32 = 0,
+};
+
+const C2 = struct {
+    value: u32 = 0,
+};
+
+const P1 = struct {
+    value: u32 = 0,
+};
+
+const P2 = struct {
+    value: u32 = 0,
+};
+
+const P3 = struct {
+    value: u32 = 0,
+};
+
+const P4 = struct {
+    value: u32 = 0,
+};
+
+fn benchSetup(world: *World) !void {
+    var index: u32 = 0;
+    while (index < 100000) : (index += 1) {
+        const e = try world.entities.spawn();
+        try world.entities.set(C1, e, .{});
+        try world.entities.set(C2, e, .{ .value = 1 });
+
+        switch (index % @as(u32, 4)) {
+            0 => try world.entities.set(P1, e, .{}),
+            1 => try world.entities.set(P2, e, .{}),
+            2 => try world.entities.set(P3, e, .{}),
+            3 => try world.entities.set(P4, e, .{}),
+            else => unreachable,
+        }
+    }
+}
+
+fn benchSystem(world: *World) !void {
+    var query = try world.query(.{ .c1 = C1, .c2 = C2 });
+    var it = query.iter();
+    while (it.next()) |e| {
+        e.c1.value += e.c2.value;
+    }
+}
+
+fn fastBenchSystem(world: *World) !void {
+    var query = try world.query(.{ .c1 = C1, .c2 = C2 });
+    for (query.tables.items) |t| {
+        var index: u32 = 0;
+        var c1 = t.getStorage(C1).?;
+        var c2 = t.getStorage(C2).?;
+        while (index < t.len) : (index += 1) {
+            c1[index].value += c2[index].value;
+        }
+    }
+}
 const Position = struct {
     x: f32,
     y: f32,
